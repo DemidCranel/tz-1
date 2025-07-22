@@ -1,0 +1,43 @@
+version: "3"
+
+services:
+  project:
+    environment:
+      BD_HOST: psql
+    container_name: tz1
+    build: .
+    ports: ["8000:8000"]
+    restart: always
+    networks:
+      - project-network
+
+
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+
+    depends_on:
+      psql:
+        condition: service_healthy
+
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+
+  psql:
+    container_name: tz1_psql
+    image: postgres
+    restart: always
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_DB: ${BD_NAME}
+      POSTGRES_USER: ${BD_USER}
+      POSTGRES_PASSWORD: ${BD_PASSWORD}
+    networks:
+      - project-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shop"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  project-network:
+    driver: bridge
